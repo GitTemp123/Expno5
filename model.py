@@ -2,40 +2,42 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
-import joblib
+#import joblib
+#import neptune
+#from neptune.types import File
 import os
-import neptune
-from neptune.types import File
-lr = LinearRegression()
-mse_values = []
+import matplotlib.pyplot as plt
 
-run = neptune.init_run(
-    project="searchkaro/Expno4",
-    api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiI2YjVlMTQzNi05MGIwLTRjMTItYWU4MS0yZGEyYmJmMTIxNzQifQ==",
-)  # your credentials
-#
-#############################################################################
+lr = LinearRegression()
+########################################################################
+####
 # Load and split data
-for _ in range(20):
+for _ in range(10):
     rng = np.random.RandomState(_)
     x = 10 * rng.rand(1000).reshape(-1,1)
     y = 2 * x - 5 + rng.randn(1000).reshape(-1,1)
-    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=300)
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=50)
+    ########################################################################
+    ######
     # Fitting the model
-
     lr.fit(X_train, y_train)
-    test_mse = mean_squared_error(y_test, lr.predict(X_test))
-    mse_values.append(test_mse) # Store the MSE value
+    y_preds = lr.predict(X_test)
+    test_mse = mean_squared_error(y_test, y_preds )
+    average_mse = np.mean(test_mse)
     print(f'MSE Result: { test_mse}')
-    run['test/mse'].log(test_mse)
 
-mean_mse = np.mean(mse_values)
-std_mse = np.std(mse_values)
-min_mse = np.min(mse_values)
-max_mse = np.max(mse_values)
-print(f"Mean MSE: {mean_mse:.4f}")
-print(f"Standard Deviation: {std_mse:.4f}")
-print(f"Min MSE: {min_mse:.4f}")
-print(f"Max MSE: {max_mse:.4f}")
-joblib.dump(lr,'/model.pkl')
-run['model'].upload(File.as_pickle('model.pkl'))
+print("Average Mean Squared Error:", average_mse)
+with open('metrics.txt', 'w') as outfile:
+    outfile.write(f'Mean Squared Error = {average_mse}.')
+# Plotting the training data
+plt.scatter(X_train, y_train, color='blue', label='Training data')
+# Plotting the testing data
+plt.scatter(X_test, y_test, color='red', label='Testing data')
+plt.scatter(X_test, y_preds, c="g", label="Predictions")
+# Show the legend
+plt.xlabel('X')
+plt.ylabel('y')
+plt.title('Training and Testing Data Split')
+plt.legend()
+plt.grid(True)
+plt.savefig('model_results.png', dpi=120)
